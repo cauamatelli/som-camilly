@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>SOUND ALERT</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#04061a;--blue:#2f6bff;--purple:#9b4dff;--cyan:#22e5ff;--ok:#2cff8a;--mid:#ffd23f;--bad:#ff3b4e;--txt:#e6ecff;--dim:#8d9bd0;--c:var(--ok);color-scheme:dark;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+*{box-sizing:border-box}html,body{margin:0;background:var(--bg);color:var(--txt);font-family:Rajdhani,system-ui,sans-serif;font-size:18px}
+h1,h2,h3,.o{font-family:Orbitron,system-ui,sans-serif}
+#bg{position:fixed;inset:0;width:100%;height:100%;z-index:0}
+header,main,footer{position:relative;z-index:1}
+header{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 18px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:10px;font-family:Orbitron,sans-serif;font-weight:900;letter-spacing:2px}
+.brand svg{width:38px;height:38px}
+nav{display:flex;gap:8px;flex-wrap:wrap}
+button{font:inherit;font-weight:600;color:var(--txt);background:rgba(47,107,255,.15);border:1px solid rgba(34,229,255,.4);border-radius:12px;padding:10px 16px;cursor:pointer;transition:.25s}
+button:hover:not(:disabled){box-shadow:0 0 18px var(--cyan),inset 0 0 12px rgba(34,229,255,.3);border-color:var(--cyan);transform:translateY(-1px)}
+button:disabled{opacity:.35;cursor:not-allowed}
+button.on,nav button.cur{background:linear-gradient(135deg,var(--blue),var(--purple));border-color:transparent}
+.big{font-family:Orbitron,sans-serif;font-weight:700;letter-spacing:2px;font-size:1.05rem;padding:16px 34px;background:linear-gradient(135deg,var(--blue),var(--purple));border:0;box-shadow:0 0 28px rgba(155,77,255,.7)}
+.screen{display:none;max-width:1100px;margin:0 auto;padding:10px 18px 40px}
+.screen.on{display:block;animation:fade .5s ease}
+@keyframes fade{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+#home{text-align:center;padding-top:5vh}
+#home .logo{width:min(220px,50vw);height:auto;animation:pulse 3s ease-in-out infinite;filter:drop-shadow(0 0 18px var(--blue))}
+@keyframes pulse{50%{transform:scale(1.06);filter:drop-shadow(0 0 30px var(--purple))}}
+h1{font-size:clamp(2.2rem,9vw,4.6rem);margin:.2em 0;background:linear-gradient(90deg,var(--cyan),var(--blue),var(--purple));-webkit-background-clip:text;background-clip:text;color:transparent;letter-spacing:4px}
+.slogan{font-size:1.5rem;color:var(--cyan)}.lead{max-width:600px;margin:10px auto 28px;color:var(--dim)}
+.glass{background:rgba(14,20,60,.55);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(100,140,255,.28);border-radius:18px;padding:18px;box-shadow:0 0 30px rgba(47,107,255,.15)}
+.grid{display:grid;gap:16px}.g2{grid-template-columns:1.1fr 1fr}.g3{grid-template-columns:repeat(3,1fr)}
+@media(max-width:800px){.g2,.g3{grid-template-columns:1fr}.stats{grid-template-columns:repeat(2,1fr)!important}}
+#meter{text-align:center;transition:.4s;border-color:var(--c);box-shadow:0 0 30px color-mix(in srgb,var(--c) 40%,transparent)}
+body.alarm #meter{animation:alarm .7s infinite alternate}
+@keyframes alarm{to{box-shadow:0 0 70px var(--bad),inset 0 0 40px rgba(255,59,78,.35)}}
+#db{font-family:Orbitron,sans-serif;font-weight:900;font-size:clamp(3.4rem,14vw,6rem);color:var(--c);text-shadow:0 0 24px var(--c);line-height:1}
+.unit{color:var(--dim);font-size:.95rem}
+#cls{font-family:Orbitron,sans-serif;font-size:1.2rem;color:var(--c);margin:6px 0}
+#face{width:110px;height:110px}#face *{stroke:var(--c);transition:.3s}
+#bars{display:flex;align-items:flex-end;gap:3px;height:110px;margin-top:10px}
+#bars i{flex:1;height:4%;border-radius:3px 3px 0 0;background:linear-gradient(to top,var(--blue),var(--cyan));box-shadow:0 0 8px var(--blue);transition:height .06s}
+#alert{display:none;margin-top:12px;padding:12px;border-radius:12px;background:rgba(255,59,78,.2);border:1px solid var(--bad);color:#fff}
+#alert b{font-family:Orbitron,sans-serif;display:block;font-size:1.05rem;margin-bottom:4px}
+body.alarm #alert{display:block}
+.ctrl{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:16px 0}
+.stat{padding:14px}.stat small{color:var(--dim)}.stat div{font-family:Orbitron,sans-serif;font-size:1.5rem;color:var(--cyan);margin-top:4px}
+canvas#ch{width:100%;height:240px;display:block}
+.row{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+input[type=range]{width:100%;accent-color:var(--purple)}
+#msg{display:none;margin:10px 0;padding:12px 14px;border-radius:12px;background:rgba(255,210,63,.12);border:1px solid var(--mid)}
+.note{color:var(--dim);font-size:.95rem}
+.card h3{margin:.2em 0;color:var(--cyan);font-size:1.05rem}.card .ic{font-size:2.2rem;display:inline-block;animation:float 3s ease-in-out infinite}
+@keyframes float{50%{transform:translateY(-6px)}}
+.card p{margin:.4em 0;color:var(--txt)}
+@media(prefers-reduced-motion:reduce){*{animation:none!important}}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#22e5ff"/><stop offset=".5" stop-color="#2f6bff"/><stop offset="1" stop-color="#9b4dff"/></linearGradient></defs>
+<symbol id="logo" viewBox="0 0 100 100"><g fill="none" stroke="url(#g)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><path d="M50 18 L82 74 H18 Z"/><path d="M50 40v18M50 66v.5"/><path d="M12 38q-7 12 0 24M2 30q-14 20 0 40M88 38q7 12 0 24M98 30q14 20 0 40"/></g></symbol></svg>
+<canvas id="bg"></canvas>
+<header>
+ <div class="brand"><svg><use href="#logo"/></svg>SOUND ALERT</div>
+ <nav><button data-s="home" class="cur">Início</button><button data-s="dash">Painel</button><button data-s="sci">Ciência do Som</button></nav>
+</header>
+<main>
+<section id="home" class="screen on">
+ <svg class="logo" viewBox="0 0 100 100"><use href="#logo"/></svg>
+ <h1>SOUND ALERT</h1>
+ <div class="slogan">O som ao seu redor, sob controle.</div>
+ <p class="lead">Monitore os níveis de ruído do ambiente em tempo real e descubra quando o som pode estar alto demais.</p>
+ <button class="big" id="goBtn">INICIAR MONITORAMENTO</button>
+ <p class="note" style="margin-top:22px">🔒 O áudio é analisado localmente no seu navegador. Nada é gravado ou enviado.</p>
+</section>
+
+<section id="dash" class="screen">
+ <div id="msg" role="alert"></div>
+ <div class="grid g2">
+  <div class="glass" id="meter">
+   <div class="row"><span class="note" id="status">Parado</span><span class="note">Nível estimado</span></div>
+   <div id="db">--</div><div class="unit">dBFS · escala relativa, não é dB SPL</div>
+   <div id="cls">Aguardando</div>
+   <svg id="face" viewBox="0 0 100 100" fill="none" stroke-width="4" stroke-linecap="round"><circle cx="50" cy="50" r="44"/><circle cx="35" cy="40" r="3"/><circle cx="65" cy="40" r="3"/><path id="mouth" d="M32 68 L68 68"/></svg>
+   <div id="bars"></div>
+   <div id="alert"><b>⚠️ ATENÇÃO! MUITO BARULHO!</b><span id="tip"></span></div>
+  </div>
+  <div class="glass">
+   <h3 class="o" style="margin-top:0">Gráfico do ruído</h3>
+   <div class="row" style="margin-bottom:8px"><span class="note">Eixo Y: dBFS · eixo X: tempo (s)</span><span><button id="r60" class="on">60 s</button> <button id="rAll">Sessão</button></span></div>
+   <canvas id="ch"></canvas>
+  </div>
+ </div>
+ <div class="ctrl">
+  <button id="bStart">Iniciar medição</button><button id="bPause" disabled>Pausar medição</button><button id="bResume" disabled>Continuar medição</button><button id="bEnd" disabled>Encerrar medição</button><button id="bReset">Reiniciar estatísticas</button>
+  <button id="bSound" class="on">🔔 Som: ligado</button><button id="bVib" class="on">📳 Vibração: ligada</button>
+ </div>
+ <div class="note" id="vibNote"></div>
+ <div class="stats">
+  <div class="glass stat"><small>Nível atual</small><div id="sNow">--</div></div>
+  <div class="glass stat"><small>Maior nível</small><div id="sMax">--</div></div>
+  <div class="glass stat"><small>Média</small><div id="sAvg">--</div></div>
+  <div class="glass stat"><small>Tempo de monitoramento</small><div id="sTime">00:00</div></div>
+  <div class="glass stat"><small>Tempo barulhento</small><div id="sLoud">00:00</div></div>
+  <div class="glass stat"><small>Alertas emitidos</small><div id="sAl">0</div></div>
+ </div>
+ <div class="glass">
+  <h3 class="o" style="margin-top:0">Limites ajustáveis (dBFS)</h3>
+  <div class="grid g2">
+   <label>Moderado a partir de <b id="vMod">-45</b><input type="range" id="tMod" min="-80" max="-10" value="-45"></label>
+   <label>Barulhento (alerta) a partir de <b id="vLoud">-30</b><input type="range" id="tLoud" min="-70" max="-5" value="-30"></label>
+  </div>
+  <p class="note">⚠️ Isto não é um decibelímetro profissional. Microfones de celulares e computadores não são calibrados, então a escala é relativa ao máximo digital do microfone (0 dBFS) e depende do aparelho. Os limites servem para conforto e concentração, não para medir risco à saúde. O alerta dispara quando o ruído fica acima do limite por 3 segundos, com intervalo mínimo de 12 segundos entre alertas.</p>
+ </div>
+</section>
+
+<section id="sci" class="screen">
+ <h2 class="o" style="color:var(--cyan)">CIÊNCIA DO SOM</h2>
+ <div class="grid g3">
+  <div class="glass card"><span class="ic">🌆</span><h3>O que é poluição sonora?</h3><p>É a presença de sons excessivos ou indesejados no ambiente. Ela pode prejudicar o bem-estar, a concentração e a saúde.</p></div>
+  <div class="glass card"><span class="ic">🧠</span><h3>Como o som afeta nosso corpo?</h3><p>Sons intensos ou prolongados podem causar desconforto, estresse, dificuldade de concentração e até danos à audição.</p></div>
+  <div class="glass card"><span class="ic">👂</span><h3>Curiosidades da audição</h3><p>O som é uma onda de vibração no ar. A frequência define se ele é grave ou agudo, e a intensidade, se é fraco ou forte. A orelha capta as vibrações e o ouvido interno as transforma em sinais para o cérebro.</p></div>
+ </div>
+ <div class="grid g3" style="margin-top:16px">
+  <div class="glass card"><span class="ic">🎼</span><h3>Frequência</h3><p>Medida em hertz (Hz). Jovens costumam ouvir de cerca de 20 Hz a 20.000 Hz.</p></div>
+  <div class="glass card"><span class="ic">📈</span><h3>Intensidade</h3><p>A escala em decibéis é logarítmica: +10 dB soa, aproximadamente, como o dobro de volume.</p></div>
+  <div class="glass card"><span class="ic">🦻</span><h3>Células ciliadas</h3><p>As células sensoriais da cóclea não se regeneram. Por isso, proteger a audição é importante.</p></div>
+ </div>
+ <div class="glass card" style="margin-top:16px"><h3>Conforto e concentração × limites de saúde</h3>
+  <p>Os limites do SOUND ALERT servem para indicar quando o ambiente está barulhento para estudar ou conversar. Eles não medem risco à saúde. Limites técnicos de exposição são dados em dB(A) por instrumentos calibrados: por exemplo, ficar por muitas horas em ambientes acima de cerca de 85 dB(A) já aumenta o risco de perda auditiva.</p></div>
+</section>
+</main>
+
+<script>
+const $=id=>document.getElementById(id);
+const TIPS=["Experimente diminuir o volume das conversas.","Um ambiente mais silencioso favorece a concentração.","Reduza o volume dos aparelhos eletrônicos.","Faça uma pausa em um ambiente tranquilo."];
+const S={ctx:null,an:null,stream:null,st:'idle',raf:0,lvl:-90,last:0,t:0,loud:0,max:-Infinity,sum:0,n:0,alerts:0,over:0,lastAlert:-1e9,samples:[],lastS:0,lastUI:0,sound:true,vib:true,range:60,tip:0};
+let tMod=-45,tLoud=-30,td,fd;
+
+/* navegação */
+function show(id){document.querySelectorAll('.screen').forEach(s=>s.classList.toggle('on',s.id===id));document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('cur',b.dataset.s===id));scrollTo(0,0);if(id==='dash')setTimeout(drawChart,50)}
+document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>show(b.dataset.s));
+$('goBtn').onclick=()=>{show('dash');start()};
+
+/* barras */
+const barsEl=$('bars');for(let i=0;i<32;i++)barsEl.appendChild(document.createElement('i'));
+const bars=[...barsEl.children];
+
+/* mensagens */
+function msg(t){const m=$('msg');m.textContent=t||'';m.style.display=t?'block':'none'}
+function btns(){const r=S.st==='running',p=S.st==='paused';$('bStart').disabled=r||p;$('bPause').disabled=!r;$('bResume').disabled=!p;$('bEnd').disabled=!(r||p);
+ $('status').textContent={idle:'Parado',running:'● Medindo',paused:'Pausado',ended:'Encerrado'}[S.st]}
+
+/* microfone */
+async function start(){
+ if(S.st==='running'||S.st==='paused')return;
+ msg('');
+ if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia||!window.isSecureContext){msg('Seu navegador ou esta página não permite acessar o microfone. Use HTTPS ou localhost e um navegador atual (Chrome, Edge, Safari, Firefox).');return}
+ try{
+  S.stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}});
+ }catch(e){
+  const n=e&&e.name;
+  msg(n==='NotAllowedError'||n==='SecurityError'?'Microfone bloqueado. Permita o acesso no ícone de cadeado ao lado do endereço do site (ou nas configurações do navegador) e clique em “Iniciar medição”. Se esta página estiver dentro de um quadro incorporado, abra-a em uma aba própria.':n==='NotFoundError'?'Nenhum microfone foi encontrado neste dispositivo.':'Não foi possível acessar o microfone ('+(n||'erro')+').');
+  S.st='idle';btns();return}
+ const AC=window.AudioContext||window.webkitAudioContext;
+ S.ctx=new AC();await S.ctx.resume();
+ S.an=S.ctx.createAnalyser();S.an.fftSize=2048;S.an.smoothingTimeConstant=.6;
+ S.ctx.createMediaStreamSource(S.stream).connect(S.an);
+ td=new Float32Array(S.an.fftSize);fd=new Uint8Array(S.an.frequencyBinCount);
+ resetStats();S.st='running';S.last=performance.now();btns();loop(S.last)}
+function pause(){if(S.st!=='running')return;cancelAnimationFrame(S.raf);S.st='paused';S.ctx.suspend();btns()}
+function resume(){if(S.st!=='paused')return;S.ctx.resume();S.last=performance.now();S.st='running';btns();loop(S.last)}
+function end(){if(S.st!=='running'&&S.st!=='paused')return;cancelAnimationFrame(S.raf);S.stream.getTracks().forEach(t=>t.stop());S.ctx.close();S.ctx=S.an=S.stream=null;S.st='ended';S.over=0;document.body.classList.remove('alarm');bars.forEach(b=>b.style.height='4%');btns();ui();drawChart()}
+function resetStats(){Object.assign(S,{t:0,loud:0,max:-Infinity,sum:0,n:0,alerts:0,over:0,lastAlert:-1e9,samples:[],lastS:0});ui();drawChart()}
+
+/* loop principal */
+function loop(now){
+ if(S.st!=='running')return;S.raf=requestAnimationFrame(loop);
+ const dt=Math.min((now-S.last)/1000,.5);S.last=now;
+ S.an.getFloatTimeDomainData(td);let s=0;for(let i=0;i<td.length;i++)s+=td[i]*td[i];
+ const raw=Math.max(-90,Math.min(0,20*Math.log10(Math.sqrt(s/td.length)||1e-5)));
+ S.lvl+=(raw-S.lvl)*.25;const v=S.lvl;
+ S.t+=dt;const isLoud=v>=tLoud;if(isLoud)S.loud+=dt;
+ if(now-S.lastS>=100){S.lastS=now;S.samples.push({t:S.t,v});S.sum+=v;S.n++;if(v>S.max)S.max=v}
+ /* alertas */
+ if(isLoud){if(!S.over)S.over=now}else S.over=0;
+ const sustained=isLoud&&now-S.over>=3000;
+ if(sustained&&now-S.lastAlert>=12000)fire(now);
+ document.body.classList.toggle('alarm',sustained);
+ /* visual */
+ const cls=v>=tLoud?'bad':v>=tMod?'mid':'ok';
+ document.documentElement.style.setProperty('--c',`var(--${cls})`);
+ $('db').textContent=v.toFixed(0);
+ $('cls').textContent={ok:'Silencioso',mid:'Moderado',bad:'Barulhento'}[cls];
+ $('mouth').setAttribute('d',{ok:'M32 62 Q50 84 68 62',mid:'M32 68 L68 68',bad:'M32 76 Q50 56 68 76'}[cls]);
+ S.an.getByteFrequencyData(fd);
+ for(let i=0;i<32;i++){const k=Math.floor(Math.pow(i/32,2)*fd.length*.35)+1;bars[i].style.height=Math.max(4,fd[k]/255*100)+'%'}
+ if(now-S.lastUI>=250){S.lastUI=now;ui();drawChart()}
+}
+function fire(now){
+ S.lastAlert=now;S.alerts++;
+ $('tip').textContent=TIPS[S.tip++%TIPS.length];
+ if(S.sound&&S.ctx){const o=S.ctx.createOscillator(),g=S.ctx.createGain();o.type='sine';o.frequency.value=880;g.gain.setValueAtTime(.001,S.ctx.currentTime);g.gain.exponentialRampToValueAtTime(.25,S.ctx.currentTime+.02);g.gain.exponentialRampToValueAtTime(.001,S.ctx.currentTime+.25);o.connect(g).connect(S.ctx.destination);o.start();o.stop(S.ctx.currentTime+.26)}
+ if(S.vib&&navigator.vibrate)navigator.vibrate([200,100,200]);
+}
+
+/* estatísticas */
+const mmss=s=>{s=Math.floor(s);return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0')};
+function ui(){
+ const has=S.n>0;
+ $('sNow').textContent=S.st==='running'||S.st==='paused'?S.lvl.toFixed(0)+' dBFS':(has?S.lvl.toFixed(0)+' dBFS':'--');
+ $('sMax').textContent=has?S.max.toFixed(0)+' dBFS':'--';
+ $('sAvg').textContent=has?(S.sum/S.n).toFixed(0)+' dBFS':'--';
+ $('sTime').textContent=mmss(S.t);$('sLoud').textContent=mmss(S.loud);$('sAl').textContent=S.alerts;
+}
+
+/* gráfico */
+function drawChart(){
+ const c=$('ch');if(!c.offsetWidth)return;
+ const dpr=devicePixelRatio||1,W=c.offsetWidth,H=c.offsetHeight;c.width=W*dpr;c.height=H*dpr;
+ const x=c.getContext('2d');x.scale(dpr,dpr);x.clearRect(0,0,W,H);
+ const L=44,B=22,T=8,R=8,w=W-L-R,h=H-T-B,lo=-90,hi=0;
+ const Y=v=>T+(hi-v)/(hi-lo)*h;
+ x.font='11px Rajdhani,sans-serif';x.fillStyle='#8d9bd0';x.strokeStyle='rgba(120,150,255,.15)';
+ for(let v=-90;v<=0;v+=15){x.beginPath();x.moveTo(L,Y(v));x.lineTo(W-R,Y(v));x.stroke();x.fillText(v,4,Y(v)+4)}
+ x.strokeStyle='rgba(255,59,78,.6)';x.setLineDash([5,4]);x.beginPath();x.moveTo(L,Y(tLoud));x.lineTo(W-R,Y(tLoud));x.stroke();x.setLineDash([]);
+ const a=S.samples;if(a.length<2){x.fillStyle='#8d9bd0';x.fillText('Os dados da sessão aparecerão aqui.',L+10,H/2);return}
+ const t1=a[a.length-1].t,t0=S.range===60?Math.max(0,t1-60):0,span=Math.max(t1-t0,5);
+ const X=t=>L+(t-t0)/span*w;
+ x.fillStyle='#8d9bd0';for(let i=0;i<=4;i++){const t=t0+span*i/4;x.fillText(Math.round(t)+'s',L+w*i/4-8,H-6)}
+ const vis=a.filter(p=>p.t>=t0),step=Math.max(1,Math.floor(vis.length/w));
+ x.lineWidth=2;x.lineJoin='round';x.shadowBlur=8;
+ for(let i=step;i<vis.length;i+=step){const p=vis[i-step],q=vis[i],bad=q.v>=tLoud;
+  x.strokeStyle=bad?'#ff3b4e':'#5b7cff';x.shadowColor=bad?'#ff3b4e':'#9b4dff';
+  x.beginPath();x.moveTo(X(p.t),Y(p.v));x.lineTo(X(q.t),Y(q.v));x.stroke()}
+ x.shadowBlur=0;
+}
+addEventListener('resize',drawChart);
+
+/* controles */
+$('bStart').onclick=start;$('bPause').onclick=pause;$('bResume').onclick=resume;$('bEnd').onclick=end;$('bReset').onclick=resetStats;
+$('bSound').onclick=e=>{S.sound=!S.sound;e.target.classList.toggle('on',S.sound);e.target.textContent='🔔 Som: '+(S.sound?'ligado':'desligado')};
+$('bVib').onclick=e=>{S.vib=!S.vib;e.target.classList.toggle('on',S.vib);e.target.textContent='📳 Vibração: '+(S.vib?'ligada':'desligada');if(S.vib&&!navigator.vibrate)$('vibNote').textContent='Vibração não compatível com este dispositivo ou navegador (o iPhone, por exemplo, não suporta).'};
+if(!navigator.vibrate)$('vibNote').textContent='Vibração não compatível com este dispositivo ou navegador. Os alertas visuais e sonoros continuam funcionando.';
+$('r60').onclick=()=>{S.range=60;$('r60').classList.add('on');$('rAll').classList.remove('on');drawChart()};
+$('rAll').onclick=()=>{S.range=0;$('rAll').classList.add('on');$('r60').classList.remove('on');drawChart()};
+$('tMod').oninput=e=>{tMod=+e.target.value;if(tMod>=tLoud){tLoud=tMod+1;$('tLoud').value=tLoud}$('vMod').textContent=tMod;$('vLoud').textContent=tLoud;drawChart()};
+$('tLoud').oninput=e=>{tLoud=+e.target.value;if(tLoud<=tMod){tMod=tLoud-1;$('tMod').value=tMod}$('vMod').textContent=tMod;$('vLoud').textContent=tLoud;drawChart()};
+document.addEventListener('visibilitychange',()=>{if(document.hidden&&S.st==='running')pause()});
+addEventListener('pagehide',()=>{if(S.stream)S.stream.getTracks().forEach(t=>t.stop())});
+
+/* ondas de fundo */
+(function(){const c=$('bg'),x=c.getContext('2d');let W,H;
+ function rs(){W=c.width=innerWidth;H=c.height=innerHeight}rs();addEventListener('resize',rs);
+ const cols=['#2f6bff','#9b4dff','#22e5ff'];
+ (function f(t){x.clearRect(0,0,W,H);x.globalAlpha=.35;x.lineWidth=2;
+  cols.forEach((col,k)=>{x.strokeStyle=col;x.beginPath();for(let i=0;i<=W;i+=12){const y=H*.72+Math.sin(i*.008+t*.0011*(k+1)+k*2)*(30+k*14)*Math.sin(t*.0004+k);i?x.lineTo(i,y):x.moveTo(i,y)}x.stroke()});
+  requestAnimationFrame(f)})(0)})();
+btns();
+</script>
+</body>
+</html>
