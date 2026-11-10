@@ -179,8 +179,16 @@ async function start(){
   await resumePromise;
   if(S.ctx.state!=='running') await S.ctx.resume();
   S.an=S.ctx.createAnalyser();S.an.fftSize=2048;S.an.smoothingTimeConstant=.6;
-  S.ctx.createMediaStreamSource(S.stream).connect(S.an);
+  const micSource=S.ctx.createMediaStreamSource(S.stream);
+  const silentGain=S.ctx.createGain();
+  silentGain.gain.value=0; // mantém o grafo ativo sem reproduzir o microfone nos alto-falantes
+  micSource.connect(S.an);
+  S.an.connect(silentGain);
+  silentGain.connect(S.ctx.destination);
   td=new Float32Array(S.an.fftSize);fd=new Uint8Array(S.an.frequencyBinCount);
+  // Verifica se o navegador realmente entregou uma faixa de áudio ativa.
+  const audioTrack=S.stream.getAudioTracks()[0];
+  if(!audioTrack||!audioTrack.enabled)throw new Error('MICROPHONE_TRACK_DISABLED');
   resetStats();S.st='running';S.last=performance.now();S.lastUI=0;btns();msg('');loop(S.last);
  }catch(e){
   const n=e&&e.name;
@@ -188,7 +196,9 @@ async function start(){
   S.stream=null;
   if(S.ctx){try{await S.ctx.close()}catch(_){}}
   S.ctx=null;S.an=null;S.st='idle';btns();
-  msg(n==='NotAllowedError'||n==='SecurityError'
+  msg(e&&e.message==='MICROPHONE_TRACK_DISABLED'
+   ?'O navegador abriu o microfone, mas a faixa de áudio está desativada. Confira a permissão do microfone no Chrome e tente novamente.'
+   :n==='NotAllowedError'||n==='SecurityError'
    ?'Acesso ao microfone bloqueado. No Chrome, toque no ícone ao lado do endereço → Permissões → Microfone → Permitir. Depois recarregue a página e toque em Iniciar monitoramento.'
    :n==='NotFoundError'||n==='DevicesNotFoundError'
    ?'Nenhum microfone foi encontrado ou está disponível neste dispositivo.'
