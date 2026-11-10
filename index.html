@@ -156,22 +156,56 @@ function btns(){const r=S.st==='running',p=S.st==='paused';$('bStart').disabled=
 async function start(){
  if(S.st==='running'||S.st==='paused')return;
  msg('');
- if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia||!window.isSecureContext){msg('Seu navegador ou esta página não permite acessar o microfone. Use HTTPS ou localhost e um navegador atual (Chrome, Edge, Safari, Firefox).');return}
+ const AC=window.AudioContext||window.webkitAudioContext;
+ if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia||!window.isSecureContext){
+  msg('Este navegador não liberou o microfone. Abra o endereço HTTPS diretamente no Chrome ou Safari (não dentro do navegador do aplicativo).');return
+ }
+ if(!AC){msg('Este navegador não oferece suporte à análise de áudio. Atualize o Chrome ou Safari.');return}
  try{
-  S.stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}});
+  // Cria e solicita a ativação do áudio imediatamente no toque do usuário.
+  // Isso é importante no Chrome Android e principalmente no Safari do iPhone.
+  S.ctx=new AC();
+  const resumePromise=S.ctx.resume();
+  let stream;
+  try{
+   stream=await navigator.mediaDevices.getUserMedia({audio:{
+    echoCancellation:false,noiseSuppression:false,autoGainControl:false
+   }});
+  }catch(firstError){
+   // Alguns celulares rejeitam constraints avançadas; tenta a configuração padrão.
+   stream=await navigator.mediaDevices.getUserMedia({audio:true});
+  }
+  S.stream=stream;
+  await resumePromise;
+  if(S.ctx.state!=='running') await S.ctx.resume();
+  S.an=S.ctx.createAnalyser();S.an.fftSize=2048;S.an.smoothingTimeConstant=.6;
+  S.ctx.createMediaStreamSource(S.stream).connect(S.an);
+  td=new Float32Array(S.an.fftSize);fd=new Uint8Array(S.an.frequencyBinCount);
+  resetStats();S.st='running';S.last=performance.now();S.lastUI=0;btns();msg('');loop(S.last);
  }catch(e){
   const n=e&&e.name;
-  msg(n==='NotAllowedError'||n==='SecurityError'?'Microfone bloqueado. Permita o acesso no ícone de cadeado ao lado do endereço do site (ou nas configurações do navegador) e clique em “Iniciar medição”. Se esta página estiver dentro de um quadro incorporado, abra-a em uma aba própria.':n==='NotFoundError'?'Nenhum microfone foi encontrado neste dispositivo.':'Não foi possível acessar o microfone ('+(n||'erro')+').');
-  S.st='idle';btns();return}
- const AC=window.AudioContext||window.webkitAudioContext;
- S.ctx=new AC();await S.ctx.resume();
- S.an=S.ctx.createAnalyser();S.an.fftSize=2048;S.an.smoothingTimeConstant=.6;
- S.ctx.createMediaStreamSource(S.stream).connect(S.an);
- td=new Float32Array(S.an.fftSize);fd=new Uint8Array(S.an.frequencyBinCount);
- resetStats();S.st='running';S.last=performance.now();btns();loop(S.last)}
-function pause(){if(S.st!=='running')return;cancelAnimationFrame(S.raf);S.st='paused';S.ctx.suspend();btns()}
-function resume(){if(S.st!=='paused')return;S.ctx.resume();S.last=performance.now();S.st='running';btns();loop(S.last)}
-function end(){if(S.st!=='running'&&S.st!=='paused')return;cancelAnimationFrame(S.raf);S.stream.getTracks().forEach(t=>t.stop());S.ctx.close();S.ctx=S.an=S.stream=null;S.st='ended';S.over=0;document.body.classList.remove('alarm');bars.forEach(b=>b.style.height='4%');btns();ui();drawChart()}
+  if(S.stream)S.stream.getTracks().forEach(t=>t.stop());
+  S.stream=null;
+  if(S.ctx){try{await S.ctx.close()}catch(_){}}
+  S.ctx=null;S.an=null;S.st='idle';btns();
+  msg(n==='NotAllowedError'||n==='SecurityError'
+   ?'Acesso ao microfone bloqueado. No Chrome, toque no ícone ao lado do endereço → Permissões → Microfone → Permitir. Depois recarregue a página e toque em Iniciar monitoramento.'
+   :n==='NotFoundError'||n==='DevicesNotFoundError'
+   ?'Nenhum microfone foi encontrado ou está disponível neste dispositivo.'
+   :n==='NotReadableError'||n==='TrackStartError'
+   ?'O microfone está sendo usado por outro aplicativo. Feche chamadas ou aplicativos que usam o microfone e tente novamente.'
+   :'Não foi possível iniciar o microfone/áudio ('+(n||'erro')+'). Verifique as permissões e tente novamente.');
+ }
+}
+function pause(){if(S.st!=='running')return;cancelAnimationFrame(S.raf);S.raf=0;S.st='paused';if(S.ctx)S.ctx.suspend();btns()}
+async function resume(){
+ if(S.st!=='paused')return;
+ try{
+  if(S.ctx&&S.ctx.state!=='running')await S.ctx.resume();
+  S.last=performance.now();S.st='running';btns();loop(S.last);msg('');
+ }catch(e){msg('O áudio foi suspenso pelo navegador. Toque em Continuar medição para reativar o áudio.')}
+}
+function end(){if(S.st!=='running'&&S.st!=='paused')return;cancelAnimationFrame(S.raf);S.raf=0;S.stream.getTracks().forEach(t=>t.stop());S.ctx.close();S.ctx=S.an=S.stream=null;S.st='ended';S.over=0;document.body.classList.remove('alarm');bars.forEach(b=>b.style.height='4%');btns();ui();drawChart()}
 function resetStats(){Object.assign(S,{t:0,loud:0,max:-Infinity,sum:0,n:0,alerts:0,over:0,lastAlert:-1e9,samples:[],lastS:0});ui();drawChart()}
 
 /* loop principal */
@@ -247,8 +281,21 @@ $('r60').onclick=()=>{S.range=60;$('r60').classList.add('on');$('rAll').classLis
 $('rAll').onclick=()=>{S.range=0;$('rAll').classList.add('on');$('r60').classList.remove('on');drawChart()};
 $('tMod').oninput=e=>{tMod=+e.target.value;if(tMod>=tLoud){tLoud=tMod+1;$('tLoud').value=tLoud}$('vMod').textContent=tMod;$('vLoud').textContent=tLoud;drawChart()};
 $('tLoud').oninput=e=>{tLoud=+e.target.value;if(tLoud<=tMod){tMod=tLoud-1;$('tMod').value=tMod}$('vMod').textContent=tMod;$('vLoud').textContent=tLoud;drawChart()};
-document.addEventListener('visibilitychange',()=>{if(document.hidden&&S.st==='running')pause()});
-addEventListener('pagehide',()=>{if(S.stream)S.stream.getTracks().forEach(t=>t.stop())});
+// Navegadores móveis podem suspender o áudio ao trocar de aplicativo ou bloquear a tela.
+// Não pausa a sessão automaticamente: ao voltar para a página, tenta reativar o AudioContext.
+document.addEventListener('visibilitychange',async()=>{
+ if(!document.hidden&&S.st==='running'&&S.ctx){
+  try{
+   if(S.ctx.state!=='running')await S.ctx.resume();
+   if(!S.raf)loop(performance.now());
+  }catch(e){
+   msg('O navegador suspendeu o microfone. Toque em Pausar e depois em Continuar medição para reativá-lo.');
+  }
+ }
+});
+addEventListener('pagehide',()=>{
+ if(S.stream)S.stream.getTracks().forEach(t=>t.stop());
+});
 
 /* ondas de fundo */
 (function(){const c=$('bg'),x=c.getContext('2d');let W,H;
